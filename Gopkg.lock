@@ -11,6 +11,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:b3956c96e99076d4d1ae18727ab0ce48389c5f22f251cb9bd6a28d4dfeb6c727"
+  name = "github.com/Al2Klimov/go-linux-apis"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "58e368cd301d5ec71f2e7fde71dbe1a2da941311"
+
+[[projects]]
+  branch = "master"
   digest = "1:453b8ebdb7c2a718d432030c0dda7110e6e9b3499663cfd30f290a57739952e0"
   name = "github.com/Al2Klimov/go-monplug-utils"
   packages = ["."]
@@ -41,6 +49,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Al2Klimov/go-gen-source-repos",
+    "github.com/Al2Klimov/go-linux-apis",
     "github.com/Al2Klimov/go-monplug-utils",
   ]
   solver-name = "gps-cdcl"
