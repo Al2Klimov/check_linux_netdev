@@ -9,9 +9,12 @@ import (
 	_ "github.com/Al2Klimov/go-gen-source-repos"
 	linux "github.com/Al2Klimov/go-linux-apis"
 	. "github.com/Al2Klimov/go-monplug-utils"
+	"html"
 	"os"
 	"os/signal"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -53,6 +56,7 @@ type metricOffset struct {
 }
 
 var rArg = regexp.MustCompile(`\A(.+):([rt]x:.+?):((?:total|persec):[wc])=(.+?)\z`)
+var rPerfLabel = regexp.MustCompile(`\A(.+):(\w+):(\w+):(\w+)\z`)
 
 var metricOffsets = func() map[string]metricOffset {
 	type i = uintptr
@@ -206,6 +210,56 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 			perfdata = append(perfdata, metric.total, metric.perSecond)
 		}
 	}
+
+	sort.Slice(perfdata, func(i, j int) bool {
+		a := perfdata[i].GetStatus()
+		b := perfdata[j].GetStatus()
+
+		if a == b {
+			return perfdata[i].Label < perfdata[j].Label
+		}
+
+		return a > b
+	})
+
+	var wc, ok strings.Builder
+
+	for _, buf := range [2]*strings.Builder{&wc, &ok} {
+		buf.WriteString(`<table><thead><tr><th>Device</th><th>Metric</th><th>Value</th></tr></thead><tbody>`)
+	}
+
+	for _, pd := range perfdata {
+		if match := rPerfLabel.FindStringSubmatch(pd.Label); match != nil {
+			var buf *strings.Builder
+
+			if pd.GetStatus() == Ok {
+				buf = &ok
+			} else {
+				buf = &wc
+			}
+
+			buf.WriteString(`<tr><td>`)
+			buf.WriteString(html.EscapeString(match[1]))
+			buf.WriteString(`</td><td>`)
+			buf.WriteString(match[2])
+			buf.WriteByte(' ')
+			buf.WriteString(match[3])
+
+			if match[4] == "persec" {
+				buf.WriteString(`/s`)
+			}
+
+			buf.WriteString(`</td><td>`)
+			buf.WriteString(strconv.FormatFloat(pd.Value, 'f', -1, 64))
+			buf.WriteString(`</td></tr>`)
+		}
+	}
+
+	for _, buf := range [2]*strings.Builder{&wc, &ok} {
+		buf.WriteString(`</tbody></table>`)
+	}
+
+	output = wc.String() + "\n\n" + ok.String()
 
 	return
 }
