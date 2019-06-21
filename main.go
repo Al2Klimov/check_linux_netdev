@@ -18,7 +18,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 )
 
 type nullWriter struct {
@@ -29,9 +28,10 @@ func (nullWriter) Write(p []byte) (int, error) {
 }
 
 type thresholdRule struct {
-	dev       *regexp.Regexp
-	offset    uintptr
-	threshold OptionalThreshold
+	dev             *regexp.Regexp
+	metricOffset    func(*perfdataDev) *perfdataMetric
+	thresholdOffset func(*perfdataMetric) *OptionalThreshold
+	threshold       OptionalThreshold
 }
 
 type perfdataMetric struct {
@@ -52,52 +52,38 @@ type perfdataDev struct {
 }
 
 type metricOffset struct {
-	netdev, perfdata uintptr
+	netdev   func(*linux.NetDev) *uint64
+	perfdata func(*perfdataDev) *perfdataMetric
 }
 
 var rArg = regexp.MustCompile(`\A(.+):([rt]x:.+?):((?:total|persec):[wc])=(.+?)\z`)
 var rPerfLabel = regexp.MustCompile(`\A(.+):(\w+):(\w+):(\w+)\z`)
 
-var metricOffsets = func() map[string]metricOffset {
-	type i = uintptr
-	type p = unsafe.Pointer
+var metricOffsets = map[string]metricOffset{
+	"rx:bytes":      {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Bytes }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.bytes }},
+	"rx:packets":    {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Packets }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.packets }},
+	"rx:errs":       {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Errs }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.errs }},
+	"rx:drop":       {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Drop }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.drop }},
+	"rx:fifo":       {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Fifo }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.fifo }},
+	"rx:frame":      {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Frame }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.frame }},
+	"rx:compressed": {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Compressed }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.compressed }},
+	"rx:multicast":  {func(nd *linux.NetDev) *uint64 { return &nd.Receive.Multicast }, func(pd *perfdataDev) *perfdataMetric { return &pd.rx.multicast }},
+	"tx:bytes":      {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Bytes }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.bytes }},
+	"tx:packets":    {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Packets }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.packets }},
+	"tx:errs":       {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Errs }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.errs }},
+	"tx:drop":       {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Drop }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.drop }},
+	"tx:fifo":       {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Fifo }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.fifo }},
+	"tx:colls":      {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Colls }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.colls }},
+	"tx:carrier":    {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Carrier }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.carrier }},
+	"tx:compressed": {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Compressed }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.compressed }},
+}
 
-	var nd linux.NetDev
-	var pd perfdataDev
-
-	return map[string]metricOffset{
-		"rx:bytes":      {i(p(&nd.Receive.Bytes)) - i(p(&nd)), i(p(&pd.rx.bytes)) - i(p(&pd))},
-		"rx:packets":    {i(p(&nd.Receive.Packets)) - i(p(&nd)), i(p(&pd.rx.packets)) - i(p(&pd))},
-		"rx:errs":       {i(p(&nd.Receive.Errs)) - i(p(&nd)), i(p(&pd.rx.errs)) - i(p(&pd))},
-		"rx:drop":       {i(p(&nd.Receive.Drop)) - i(p(&nd)), i(p(&pd.rx.drop)) - i(p(&pd))},
-		"rx:fifo":       {i(p(&nd.Receive.Fifo)) - i(p(&nd)), i(p(&pd.rx.fifo)) - i(p(&pd))},
-		"rx:frame":      {i(p(&nd.Receive.Frame)) - i(p(&nd)), i(p(&pd.rx.frame)) - i(p(&pd))},
-		"rx:compressed": {i(p(&nd.Receive.Compressed)) - i(p(&nd)), i(p(&pd.rx.compressed)) - i(p(&pd))},
-		"rx:multicast":  {i(p(&nd.Receive.Multicast)) - i(p(&nd)), i(p(&pd.rx.multicast)) - i(p(&pd))},
-		"tx:bytes":      {i(p(&nd.Transmit.Bytes)) - i(p(&nd)), i(p(&pd.tx.bytes)) - i(p(&pd))},
-		"tx:packets":    {i(p(&nd.Transmit.Packets)) - i(p(&nd)), i(p(&pd.tx.packets)) - i(p(&pd))},
-		"tx:errs":       {i(p(&nd.Transmit.Errs)) - i(p(&nd)), i(p(&pd.tx.errs)) - i(p(&pd))},
-		"tx:drop":       {i(p(&nd.Transmit.Drop)) - i(p(&nd)), i(p(&pd.tx.drop)) - i(p(&pd))},
-		"tx:fifo":       {i(p(&nd.Transmit.Fifo)) - i(p(&nd)), i(p(&pd.tx.fifo)) - i(p(&pd))},
-		"tx:colls":      {i(p(&nd.Transmit.Colls)) - i(p(&nd)), i(p(&pd.tx.colls)) - i(p(&pd))},
-		"tx:carrier":    {i(p(&nd.Transmit.Carrier)) - i(p(&nd)), i(p(&pd.tx.carrier)) - i(p(&pd))},
-		"tx:compressed": {i(p(&nd.Transmit.Compressed)) - i(p(&nd)), i(p(&pd.tx.compressed)) - i(p(&pd))},
-	}
-}()
-
-var thresholdOffsets = func() map[string]uintptr {
-	type i = uintptr
-	type p = unsafe.Pointer
-
-	var root perfdataMetric
-
-	return map[string]uintptr{
-		"total:w":  i(p(&root.total.Warn)) - i(p(&root)),
-		"total:c":  i(p(&root.total.Crit)) - i(p(&root)),
-		"persec:w": i(p(&root.perSecond.Warn)) - i(p(&root)),
-		"persec:c": i(p(&root.perSecond.Crit)) - i(p(&root)),
-	}
-}()
+var thresholdOffsets = map[string]func(*perfdataMetric) *OptionalThreshold{
+	"total:w":  func(root *perfdataMetric) *OptionalThreshold { return &root.total.Warn },
+	"total:c":  func(root *perfdataMetric) *OptionalThreshold { return &root.total.Crit },
+	"persec:w": func(root *perfdataMetric) *OptionalThreshold { return &root.perSecond.Warn },
+	"persec:c": func(root *perfdataMetric) *OptionalThreshold { return &root.perSecond.Crit },
+}
 
 func main() {
 	os.Exit(ExecuteCheck(onTerminal, checkLinuxNetdev))
@@ -146,7 +132,8 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 
 		rules[i] = thresholdRule{
 			regexp.MustCompile(`\A` + regex + `\z`),
-			metricOffsets[match[2]].perfdata + thresholdOffsets[match[3]],
+			metricOffsets[match[2]].perfdata,
+			thresholdOffsets[match[3]],
 			threshold,
 		}
 	}
@@ -173,9 +160,6 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 	div := float64(*duration) / float64(time.Second)
 
 	for dev, before := range netDev1 {
-		type i = uintptr
-		type p = unsafe.Pointer
-
 		after, hasAfter := netDev2[dev]
 		if !hasAfter {
 			continue
@@ -187,17 +171,17 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 		perfdataPerDev.tx.bytes.perSecond.UOM = "B"
 
 		for _, rule := range rules {
-			threshold := (*OptionalThreshold)(p(i(p(&perfdataPerDev)) + rule.offset))
+			threshold := rule.thresholdOffset(rule.metricOffset(&perfdataPerDev))
 			if !threshold.IsSet && rule.dev.MatchString(dev) {
 				*threshold = rule.threshold
 			}
 		}
 
 		for name, offset := range metricOffsets {
-			metric := (*perfdataMetric)(p(i(p(&perfdataPerDev)) + offset.perfdata))
+			metric := offset.perfdata(&perfdataPerDev)
 			prefix := fmt.Sprintf("%s:%s:", dev, name)
-			before := (*uint64)(p(i(p(&before)) + offset.netdev))
-			after := (*uint64)(p(i(p(&after)) + offset.netdev))
+			before := offset.netdev(&before)
+			after := offset.netdev(&after)
 
 			metric.total.Label = prefix + "total"
 			metric.total.Value = float64(*after)
