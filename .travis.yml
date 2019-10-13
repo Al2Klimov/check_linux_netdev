@@ -1,16 +1,10 @@
-language: go
+language: minimal
 
-go:
-  - "1.x"
-  - master
-
-before_script:
-  - curl -LSso "${GOPATH}/bin/dep" https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64
-  - chmod +x "${GOPATH}/bin/dep"
+services:
+  - docker
 
 script:
-  - dep ensure
-  - .travis-ci/compile.sh
+  - 'docker run --rm -v "$(pwd):/go/src/github.com/Al2Klimov/check_linux_netdev" grandmaster/go-app-factory'
 
 deploy:
   provider: releases
@@ -21,4 +15,3 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
-    go: "1.x"
