@@ -4,8 +4,6 @@ set -e
 set -o pipefail
 set -x
 
-go generate
-
 export GOOS=linux
 BIN_PREFIX="$(head -1 <go.mod |cut -d / -f 3).linux-"
 
