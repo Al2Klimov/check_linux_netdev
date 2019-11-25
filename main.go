@@ -1,4 +1,4 @@
-//go:generate go run vendor/github.com/Al2Klimov/go-gen-source-repos/main.go github.com/Al2Klimov/check_linux_netdev
+//go:generate go run github.com/Al2Klimov/go-gen-source-repos
 
 package main
 
@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	_ "github.com/Al2Klimov/go-gen-source-repos"
 	linux "github.com/Al2Klimov/go-linux-apis"
 	. "github.com/Al2Klimov/go-monplug-utils"
 	"html"

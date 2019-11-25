@@ -7,7 +7,7 @@ set -x
 go generate
 
 export GOOS=linux
-BIN_PREFIX="$(basename "$(pwd)").linux-"
+BIN_PREFIX="$(head -1 <go.mod |cut -d / -f 3).linux-"
 
 for arch in {amd,arm}64 {mips,ppc}64{,le} s390x; do
 	GOARCH=$arch go build -o "${BIN_PREFIX}$arch" .

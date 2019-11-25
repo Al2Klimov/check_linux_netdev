@@ -4,7 +4,7 @@ services:
   - docker
 
 script:
-  - 'docker run --rm -v "$(pwd):/go/src/github.com/Al2Klimov/check_linux_netdev" grandmaster/go-app-factory'
+  - 'docker run --rm -v "$(pwd):/src" grandmaster/go-app-factory'
 
 deploy:
   provider: releases
