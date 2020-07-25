@@ -14,7 +14,7 @@ The [plug-and-play Linux binaries]
 take some optional CLI arguments and no environment variables:
 
 ```
-$ ./check_linux_netdev [-d DURATION] [INTERFACE:METRIC:THRESHOLD=RANGE ...]
+$ ./check_linux_netdev [-d DURATION] [-e INTERFACE ...] [INTERFACE:METRIC:THRESHOLD=RANGE ...]
 ```
 
 check\_linux\_netdev measures not only e.g. the bytes
@@ -22,6 +22,8 @@ every network device received so far, but also the average B/s
 during DURATION being e.g. 10s or 2m (default: 1m).
 
 **Yes, this plugin runs for one minute by default!**
+
+-e specifies a network device to ignore.
 
 INTERFACE specifies either one particular network device (e.g. "eth0")
 or a pattern (e.g. "eth?\*") with the special characters

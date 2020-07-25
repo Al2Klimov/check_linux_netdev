@@ -55,6 +55,26 @@ type metricOffset struct {
 	perfdata func(*perfdataDev) *perfdataMetric
 }
 
+type patternValues struct {
+	patterns []*regexp.Regexp
+}
+
+var _ flag.Value = (*patternValues)(nil)
+
+func (pv *patternValues) String() string {
+	rendered := make([]string, 0, len(pv.patterns))
+	for _, p := range pv.patterns {
+		rendered = append(rendered, p.String())
+	}
+
+	return strings.Join(rendered, " ")
+}
+
+func (pv *patternValues) Set(s string) error {
+	pv.patterns = append(pv.patterns, patternToRegex(s))
+	return nil
+}
+
 var rArg = regexp.MustCompile(`\A(.+):([rt]x:.+?):((?:total|persec):[wc])=(.+?)\z`)
 var rPerfLabel = regexp.MustCompile(`\A(.+):(\w+):(\w+):(\w+)\z`)
 
@@ -102,6 +122,9 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 
 	duration := cli.Duration("d", time.Minute, "")
 
+	var exclude patternValues
+	cli.Var(&exclude, "e", "")
+
 	if cli.Parse(os.Args[1:]) != nil {
 		return "", nil, getUsageErrs()
 	}
@@ -125,12 +148,8 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 			return "", nil, getUsageErrs()
 		}
 
-		regex := regexp.QuoteMeta(match[1])
-		regex = strings.Replace(regex, `\?`, `.`, -1)
-		regex = strings.Replace(regex, `\*`, `.*`, -1)
-
 		rules[i] = thresholdRule{
-			regexp.MustCompile(`\A` + regex + `\z`),
+			patternToRegex(match[1]),
 			metricOffsets[match[2]].perfdata,
 			thresholdOffsets[match[3]],
 			threshold,
@@ -158,10 +177,17 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 	perfdata = make(PerfdataCollection, 0, len(netDev1)*32)
 	div := float64(*duration) / float64(time.Second)
 
+Dev:
 	for dev, before := range netDev1 {
 		after, hasAfter := netDev2[dev]
 		if !hasAfter {
 			continue
+		}
+
+		for _, e := range exclude.patterns {
+			if e.MatchString(dev) {
+				continue Dev
+			}
 		}
 
 		var perfdataPerDev perfdataDev
@@ -251,4 +277,12 @@ func getUsageErrs() map[string]error {
 	return map[string]error{
 		"Usage": errors.New(os.Args[0] + " [-d DURATION] [INTERFACE:METRIC:THRESHOLD=RANGE ...]"),
 	}
+}
+
+func patternToRegex(pattern string) *regexp.Regexp {
+	regex := regexp.QuoteMeta(pattern)
+	regex = strings.Replace(regex, `\?`, `.`, -1)
+	regex = strings.Replace(regex, `\*`, `.*`, -1)
+
+	return regexp.MustCompile(`\A` + regex + `\z`)
 }
