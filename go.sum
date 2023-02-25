@@ -1,5 +1,3 @@
-github.com/Al2Klimov/go-gen-source-repos v0.0.0-20191012103425-993a7199781c h1:Cj6JIOX7kXMv0kK+GLej9gthif7phbuXjJCrjs/s/S4=
-github.com/Al2Klimov/go-gen-source-repos v0.0.0-20191012103425-993a7199781c/go.mod h1:l5fESJQgkQ1xeQjuPK9uEUKF/mTq6WPsPBOgu050BAY=
 github.com/Al2Klimov/go-linux-apis v0.0.0-20190512161042-58e368cd301d h1:uYkqc4b6ciBnf87TOC0QKSNstlT/EGuzptS0Chwfybw=
 github.com/Al2Klimov/go-linux-apis v0.0.0-20190512161042-58e368cd301d/go.mod h1:70cljx9TcjlunMGVNaINtMHpftL553mkiw3sAhISN00=
 github.com/Al2Klimov/go-monplug-utils v0.0.0-20190614130920-37501b5dec90 h1:wOD9k6e1cckSR4ijHvbEEVX4Ess4Rjd5ndh+UIeifRU=
@@ -11,8 +9,7 @@ golang.org/x/crypto v0.0.0-20191122220453-ac88ee75c92c h1:/nJuwDLoL/zrqY6gf57vxC
 golang.org/x/crypto v0.0.0-20191122220453-ac88ee75c92c/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
-golang.org/x/sys v0.0.0-20190412213103-97732733099d h1:+R4KGOnez64A81RvjARKc4UT5/tI9ujCIVX+P5KiHuI=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20210317091845-390168757d9c h1:WGyvPg8lhdtSkb8BiYWdtPlLSommHOmJHFvzWODI7BQ=
-golang.org/x/sys v0.0.0-20210317091845-390168757d9c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.1.0 h1:kunALQeHf1/185U1i0GOB/fy1IPRDDpuoOOqRReG57U=
+golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
