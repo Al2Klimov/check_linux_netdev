@@ -12,12 +12,10 @@ jobs:
       fail-fast: false
       matrix:
         go:
-        - '1.11'
-        - '1.12'
-        - '1.13'
-        - '1.14'
-        - '1.15'
-        - '1.16'
+        - '1.18'
+        - '1.19'
+        - '1.20'
+        - '1.21'
         goenv:
         - GOARCH=386 GO386=sse2
         - GOARCH=amd64
@@ -52,11 +50,10 @@ jobs:
       fail-fast: false
       matrix:
         go:
-        - '1.11'
-        - '1.12'
-        - '1.13'
-        - '1.14'
-        - '1.15'
+        - '1.18'
+        - '1.19'
+        - '1.20'
+        - '1.21'
         goenv:
         - GOARCH=386 GO386=387
     steps:
@@ -90,9 +87,10 @@ jobs:
       fail-fast: false
       matrix:
         go:
-        - '1.14'
-        - '1.15'
-        - '1.16'
+        - '1.18'
+        - '1.19'
+        - '1.20'
+        - '1.21'
         goenv:
         - GOARCH=riscv64
     steps:
@@ -109,12 +107,10 @@ jobs:
       fail-fast: false
       matrix:
         go:
-        - '1.11'
-        - '1.12'
-        - '1.13'
-        - '1.14'
-        - '1.15'
-        - '1.16'
+        - '1.18'
+        - '1.19'
+        - '1.20'
+        - '1.21'
     steps:
     - uses: actions/setup-go@v1
       with:
