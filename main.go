@@ -6,8 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	linux "github.com/Al2Klimov/go-linux-apis"
-	. "github.com/Al2Klimov/go-monplug-utils"
 	"html"
 	"os"
 	"os/signal"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	linux "github.com/Al2Klimov/go-linux-apis"
+	goMonPlugUtils "github.com/Al2Klimov/go-monplug-utils"
 )
 
 type nullWriter struct {
@@ -29,12 +30,12 @@ func (nullWriter) Write(p []byte) (int, error) {
 type thresholdRule struct {
 	dev             *regexp.Regexp
 	metricOffset    func(*perfdataDev) *perfdataMetric
-	thresholdOffset func(*perfdataMetric) *OptionalThreshold
-	threshold       OptionalThreshold
+	thresholdOffset func(*perfdataMetric) *goMonPlugUtils.OptionalThreshold
+	threshold       goMonPlugUtils.OptionalThreshold
 }
 
 type perfdataMetric struct {
-	total, perSecond Perfdata
+	total, perSecond goMonPlugUtils.Perfdata
 }
 
 type perfdataRx struct {
@@ -97,32 +98,34 @@ var metricOffsets = map[string]metricOffset{
 	"tx:compressed": {func(nd *linux.NetDev) *uint64 { return &nd.Transmit.Compressed }, func(pd *perfdataDev) *perfdataMetric { return &pd.tx.compressed }},
 }
 
-var thresholdOffsets = map[string]func(*perfdataMetric) *OptionalThreshold{
-	"total:w":  func(root *perfdataMetric) *OptionalThreshold { return &root.total.Warn },
-	"total:c":  func(root *perfdataMetric) *OptionalThreshold { return &root.total.Crit },
-	"persec:w": func(root *perfdataMetric) *OptionalThreshold { return &root.perSecond.Warn },
-	"persec:c": func(root *perfdataMetric) *OptionalThreshold { return &root.perSecond.Crit },
+var thresholdOffsets = map[string]func(*perfdataMetric) *goMonPlugUtils.OptionalThreshold{
+	"total:w":  func(root *perfdataMetric) *goMonPlugUtils.OptionalThreshold { return &root.total.Warn },
+	"total:c":  func(root *perfdataMetric) *goMonPlugUtils.OptionalThreshold { return &root.total.Crit },
+	"persec:w": func(root *perfdataMetric) *goMonPlugUtils.OptionalThreshold { return &root.perSecond.Warn },
+	"persec:c": func(root *perfdataMetric) *goMonPlugUtils.OptionalThreshold { return &root.perSecond.Crit },
 }
 
 func main() {
-	os.Exit(ExecuteCheck(onTerminal, checkLinuxNetdev))
+	os.Exit(goMonPlugUtils.ExecuteCheck(onTerminal, checkLinuxNetdev))
 }
 
 func onTerminal() (output string) {
 	return fmt.Sprintf(
 		"For the terms of use, the source code and the authors\n"+
 			"see the projects this program is assembled from:\n\n  %s\n",
-		strings.Join(GithubcomAl2klimovGo_gen_source_repos, "\n  "),
+		strings.Join(GithubcomAl2klimovGoGenSourceRepos, "\n  "),
 	)
 }
 
-func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[string]error) {
+// nolint:funlen,gocognit
+func checkLinuxNetdev() (output string, perfdata goMonPlugUtils.PerfdataCollection, errs map[string]error) {
 	cli := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	cli.SetOutput(nullWriter{})
 
 	duration := cli.Duration("d", time.Minute, "")
 
 	var exclude patternValues
+
 	cli.Var(&exclude, "e", "")
 
 	if cli.Parse(os.Args[1:]) != nil {
@@ -142,7 +145,7 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 			return "", nil, getUsageErrs()
 		}
 
-		var threshold OptionalThreshold
+		var threshold goMonPlugUtils.OptionalThreshold
 
 		if threshold.Set(match[4]) != nil {
 			return "", nil, getUsageErrs()
@@ -174,7 +177,7 @@ func checkLinuxNetdev() (output string, perfdata PerfdataCollection, errs map[st
 		return "", nil, map[string]error{"/proc/net/dev": errND2}
 	}
 
-	perfdata = make(PerfdataCollection, 0, len(netDev1)*32)
+	perfdata = make(goMonPlugUtils.PerfdataCollection, 0, len(netDev1)*32)
 	div := float64(*duration) / float64(time.Second)
 
 Dev:
@@ -205,13 +208,16 @@ Dev:
 		for name, offset := range metricOffsets {
 			metric := offset.perfdata(&perfdataPerDev)
 			prefix := fmt.Sprintf("%s:%s:", dev, name)
-			before := offset.netdev(&before)
+			before := offset.netdev(&before) // nolint:gosec,scopelint
 			after := offset.netdev(&after)
 
 			metric.total.Label = prefix + "total"
 			metric.total.Value = float64(*after)
 			metric.total.UOM = "c"
-			metric.total.Min = OptionalNumber{true, 0}
+			metric.total.Min = goMonPlugUtils.OptionalNumber{
+				IsSet: true,
+				Value: 0,
+			}
 
 			metric.perSecond.Label = prefix + "persec"
 			metric.perSecond.Value = float64(*after-*before) / div
@@ -241,7 +247,7 @@ Dev:
 		if match := rPerfLabel.FindStringSubmatch(pd.Label); match != nil {
 			var buf *strings.Builder
 
-			if pd.GetStatus() == Ok {
+			if pd.GetStatus() == goMonPlugUtils.Ok {
 				buf = &ok
 			} else {
 				buf = &wc
@@ -281,8 +287,8 @@ func getUsageErrs() map[string]error {
 
 func patternToRegex(pattern string) *regexp.Regexp {
 	regex := regexp.QuoteMeta(pattern)
-	regex = strings.Replace(regex, `\?`, `.`, -1)
-	regex = strings.Replace(regex, `\*`, `.*`, -1)
+	regex = strings.ReplaceAll(regex, `\?`, `.`)
+	regex = strings.ReplaceAll(regex, `\*`, `.*`)
 
 	return regexp.MustCompile(`\A` + regex + `\z`)
 }
