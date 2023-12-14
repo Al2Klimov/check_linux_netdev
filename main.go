@@ -113,7 +113,7 @@ func onTerminal() (output string) {
 	return fmt.Sprintf(
 		"For the terms of use, the source code and the authors\n"+
 			"see the projects this program is assembled from:\n\n  %s\n",
-		strings.Join(GithubcomAl2klimovGoGenSourceRepos, "\n  "),
+		strings.Join(GithubcomAl2klimovGo_gen_source_repos, "\n  "), // nolint:nosnakecase
 	)
 }
 
