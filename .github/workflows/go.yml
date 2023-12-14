@@ -22,7 +22,6 @@ jobs:
         - GOARCH=arm GOARM=6
         - GOARCH=arm GOARM=7
         - GOARCH=arm64
-        - GOARCH=riscv32
         - GOARCH=riscv64
     steps:
     - uses: actions/setup-go@v1
